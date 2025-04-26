@@ -1,0 +1,16 @@
+first navigate to your project folder
+if github its in documents folder
+if its on xampp its on htdocs folder
+example = cd C:\xampp\htdocs\wecare-desktop
+
+initializing npm
+
+npm init -y
+
+installing electrond and other dependencies 
+npm install electron --save-dev
+npm install electron-builder --save-dev
+npm install electron-reloader --save-dev
+npm install dotenv --save
+npm install mysql2 --save
+npm install axios --save
