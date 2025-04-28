@@ -2,8 +2,8 @@ const { ipcRenderer } = require('electron');
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM fully loaded");
-    
-    // Simulate loading officer data
+
+    // Simulate loading officer data (or load actual data here)
     setTimeout(() => {
         document.getElementById('app-status').innerHTML = `
             <p>Officer: <strong>Sample Officer</strong></p>
@@ -17,16 +17,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1500);
 });
 
+// Load complaints using ipcRenderer to fetch real data
 function loadComplaints() {
-    // This will eventually call your main process to get real data
-    const sampleComplaints = [
-        { id: 1, title: "Garbage Collection", status: "pending", resident: "Juan Dela Cruz" },
-        { id: 2, title: "Street Light Repair", status: "in_progress", resident: "Maria Santos" }
-    ];
-    
-    renderComplaints(sampleComplaints);
+    const officerId = 20; // Example officer ID
+
+    ipcRenderer.invoke('get-all-complaints', officerId)
+        .then(complaints => {
+            if (complaints.length === 0) {
+                document.getElementById('complaints-container').innerHTML = `
+                    <p>No complaints found.</p>
+                `;
+            } else {
+                renderComplaints(complaints);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading complaints:', error);
+            document.getElementById('complaints-container').innerHTML = `
+                <p>Error loading complaints. Please try again later.</p>
+            `;
+        });
 }
 
+// Render complaints on the page
 function renderComplaints(complaints) {
     const container = document.getElementById('complaints-container');
     container.style.display = 'block';
@@ -37,7 +50,7 @@ function renderComplaints(complaints) {
             ${complaints.map(complaint => `
                 <div class="complaint-card">
                     <h3>${complaint.title}</h3>
-                    <p>From: ${complaint.resident}</p>
+                    <p>From: ${complaint.resident_name}</p>
                     <span class="status-badge ${complaint.status}">
                         ${formatStatus(complaint.status)}
                     </span>
@@ -47,6 +60,7 @@ function renderComplaints(complaints) {
     `;
 }
 
+// Format the complaint status (e.g., pending -> Pending)
 function formatStatus(status) {
     return status.split('_').map(word => 
         word.charAt(0).toUpperCase() + word.slice(1)

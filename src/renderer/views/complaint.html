@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Complaints</title>
+  <link rel="stylesheet" href="../assets/css/complaint.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span id="sidebarOfficerName">Officer Name</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li data-view="dashboard"><a href="#">Dashboard</a></li>
+      <li data-view="complaints" class="active"><a href="#">Complaints</a></li>
+      <li id="logoutBtn"><a href="#">Logout</a></li>
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="header">
+      <button id="backButton" class="btn-back">Back to Dashboard</button>
+      <h1>Complaints</h1>
+    </div>
+    <div class="complaints-header">
+      <select id="statusFilter">
+        <option value="all">All</option>
+        <option value="pending">Pending</option>
+        <option value="in_progress">In Progress</option>
+     
+      </select>
+      <input type="text" id="searchInput" placeholder="Search complaints...">
+    </div>
+    <div class="loading-indicator">Loading...</div>
+    <div class="error-message"></div>
+    <div class="complaints-list"></div>
+
+    <!-- View Modal -->
+    <div class="modal" id="complaintDetailsModal">
+      <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2 id="complaintModalTitle"></h2>
+        <div id="complaintModalBody"></div>
+      </div>
+    </div>
+
+    <!-- Assignment Modal -->
+    <div id="assignmentModal" class="modal">
+      <div class="modal-content">
+        <span class="close-assignment-modal">&times;</span>
+        <h3>Assign Personnel</h3>
+        <textarea id="personnelInput" placeholder="Enter personnel names..." rows="5" style="width: 100%;"></textarea>
+        <button id="submitAssignmentBtn">Submit Assignment</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = window.require('electron');
+    let activeOfficer = null;
+    let selectedComplaintId = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Load officer data
+      await loadOfficerData();
+
+      // Initialize the complaints view
+      if (activeOfficer) {
+        initComplaintsView(activeOfficer);
+      }
+    });
+
+    async function loadOfficerData() {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return (window.location.href = 'login.html');
+
+        const result = await ipcRenderer.invoke('validate-session', token);
+        if (result.valid) {
+          activeOfficer = result.user;
+          updateUI(result.user);
+        } else {
+          window.location.href = 'login.html';
+        }
+      } catch {
+        window.location.href = 'login.html';
+      }
+    }
+
+    function updateUI(officer) {
+      const officerName = `${officer.first_name} ${officer.last_name}`;
+      document.getElementById('sidebarOfficerName').textContent = officerName;
+
+      document.querySelectorAll('.sidebar-menu li').forEach(item => {
+        item.addEventListener('click', function () {
+          const view = this.getAttribute('data-view');
+          if (view === 'dashboard') {
+            window.location.href = 'dashboard.html'; // Redirect to dashboard
+          }
+        });
+      });
+
+      // Add event listener for the back button
+      const backButton = document.getElementById('backButton');
+      if (backButton) {
+        backButton.addEventListener('click', () => {
+          window.location.href = 'dashboard.html'; // Redirect to dashboard
+        });
+      }
+
+      // Add event listener for logout
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          localStorage.removeItem('authToken');
+          window.location.href = 'login.html';
+        });
+      }
+    }
+
+    function initComplaintsView(officer) {
+      if (!officer?.id) return showError('Missing officer info');
+      loadComplaints();
+      setupEventListeners();
+    }
+
+    function setupEventListeners() {
+      document.getElementById('statusFilter').addEventListener('change', loadComplaints);
+      document.getElementById('searchInput').addEventListener('input', loadComplaints);
+      document.querySelector('.close-modal').addEventListener('click', () => {
+        document.getElementById('complaintDetailsModal').style.display = 'none';
+      });
+      document.querySelector('.close-assignment-modal').addEventListener('click', () => {
+        document.getElementById('assignmentModal').style.display = 'none';
+      });
+      document.getElementById('submitAssignmentBtn').addEventListener('click', async () => {
+        const personnel = document.getElementById('personnelInput').value.trim();
+        if (!personnel) return alert('Personnel name is required.');
+        try {
+          const response = await ipcRenderer.invoke('assign-personnel-and-resolve', {
+            complaintId: selectedComplaintId,
+            personnel,
+            resolvedBy: activeOfficer.id,
+            resolvedAt: new Date().toISOString()
+          });
+          if (response.success) {
+            alert('Personnel assigned and complaint resolved!');
+            document.getElementById('assignmentModal').style.display = 'none';
+            loadComplaints();
+          } else {
+            alert('Failed to assign personnel or resolve complaint.');
+          }
+        } catch (error) {
+          console.error('Error assigning personnel:', error);
+          alert('An error occurred while resolving the complaint.');
+        }
+      });
+    }
+
+    async function loadComplaints() {
+      if (!activeOfficer?.id) return showError('Invalid officer');
+      showLoadingIndicator(true);
+      try {
+        const status = document.getElementById('statusFilter').value;
+        const search = document.getElementById('searchInput').value;
+        const complaints = await ipcRenderer.invoke('get-officer-complaints', {
+          officerId: activeOfficer.id,
+          status: status === 'all' ? null : status,
+          search
+        });
+        renderComplaints(complaints);
+      } catch (e) {
+        showError('Failed to load complaints.');
+      } finally {
+        showLoadingIndicator(false);
+      }
+    }
+
+    function renderComplaints(complaints) {
+      const container = document.querySelector('.complaints-list');
+      if (!Array.isArray(complaints) || complaints.length === 0) {
+        container.innerHTML = '<div class="no-complaints">No complaints found.</div>';
+        return;
+      }
+      container.innerHTML = complaints.map(c => `
+        <div class="complaint-card" data-id="${c.id}">
+          <div class="complaint-header">
+            <h3>${c.title}</h3>
+            <span class="complaint-date">${formatDate(c.created_at)}</span>
+          </div>
+          <div class="complaint-body">
+            <p class="complaint-desc">${truncateText(c.description, 100)}</p>
+            <div class="complaint-meta">
+              <span class="status-badge status-${c.status}">${formatStatus(c.status)}</span>
+              <span class="resident-name">${c.resident_name}</span>
+            </div>
+          </div>
+          <div class="complaint-actions">
+            <button class="btn-view-details"><i class="fas fa-eye"></i> View Details</button>
+            ${c.status !== 'resolved' ? `
+              <button class="btn-assign-personnel"><i class="fas fa-edit"></i> Assign Personnel</button>` : ''}
+          </div>
+        </div>
+      `).join('');
+
+      document.querySelectorAll('.btn-view-details').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const id = e.target.closest('.complaint-card').dataset.id;
+          showComplaintDetails(id);
+        });
+      });
+
+      document.querySelectorAll('.btn-assign-personnel').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const card = e.target.closest('.complaint-card');
+          const id = card.dataset.id;
+          selectedComplaintId = id;
+          document.getElementById('assignmentModal').style.display = 'block';
+        });
+      });
+    }
+
+    async function showComplaintDetails(id) {
+      try {
+        const c = await ipcRenderer.invoke('get-complaint-details', id);
+        const modal = document.getElementById('complaintDetailsModal');
+        const modalBody = document.getElementById('complaintModalBody');
+        document.getElementById('complaintModalTitle').textContent = c.title;
+        modalBody.innerHTML = `
+          <div class="detail-row"><label>Resident:</label><span>${c.resident_name}</span></div>
+          <div class="detail-row"><label>Date:</label><span>${formatDateTime(c.created_at)}</span></div>
+          <div class="detail-row"><label>Status:</label><span class="status-badge status-${c.status}">${formatStatus(c.status)}</span></div>
+          <div class="detail-row"><label>Priority:</label><span>${formatPriority(c.priority)}</span></div>
+          <div class="detail-row full-width"><label>Description:</label><p>${c.description}</p></div>
+          <div class="detail-row full-width"><label>Assigned Personnel:</label><p>${c.assigned_personnel || 'Unassigned'}</p></div>
+        `;
+        modal.style.display = 'block';
+      } catch (err) {
+        showError('Error loading details');
+      }
+    }
+
+    function formatDate(d) {
+      return new Date(d).toLocaleDateString();
+    }
+    function formatDateTime(d) {
+      return new Date(d).toLocaleString();
+    }
+    function formatStatus(s) {
+      return s.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+    function formatPriority(p) {
+      return p ? p.charAt(0).toUpperCase() + p.slice(1) : 'Medium';
+    }
+    function truncateText(t, l) {
+      return t.length > l ? t.substring(0, l) + '...' : t;
+    }
+    function showError(msg) {
+      const el = document.querySelector('.error-message');
+      if (el) {
+        el.textContent = msg;
+        el.style.display = 'block';
+      }
+    }
+    function showLoadingIndicator(show) {
+      const el = document.querySelector('.loading-indicator');
+      if (el) el.style.display = show ? 'block' : 'none';
+    }
+  </script>
+</body>
+</html>
