@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const jwt = require('jsonwebtoken');
+<<<<<<< HEAD
 const auth = require('./auth'); // Import the auth module
 require('dotenv').config(); // Load environment variables
 
@@ -9,6 +10,13 @@ const db = require('../shared/db'); // Database connection module
 if (process.env.NODE_ENV === 'development') {
     require('electron-reloader')(module);
 }
+=======
+
+const auth = require('./auth'); // Import the auth module
+const db = require('../shared/db'); // Database connection module
+require('dotenv').config(); // Load environment variables
+require('electron-reloader')(module);
+>>>>>>> 609dac5f38e2b2605a8501c20530b10676a2bfb9
 
 let mainWindow;
 
@@ -48,6 +56,7 @@ app.whenReady().then(() => {
     // Auth IPC Handlers
     ipcMain.handle('attempt-login', async (event, credentials) => {
         try {
+<<<<<<< HEAD
             console.log('Executing login query with email:', credentials.email);
             const result = await auth.attemptLogin(credentials);
 
@@ -55,6 +64,12 @@ app.whenReady().then(() => {
                 return { success: false, message: result.message };
             }
 
+=======
+            const result = await auth.attemptLogin(credentials);
+            if (!result.success) {
+                return { success: false, message: result.message };
+            }
+>>>>>>> 609dac5f38e2b2605a8501c20530b10676a2bfb9
             // Send the token to the renderer process after login success
             event.sender.send('login-success', result.token);
             return { success: true, token: result.token, user: result.user };
@@ -63,14 +78,21 @@ app.whenReady().then(() => {
             return { success: false, message: 'An error occurred. Please try again.' };
         }
     });
+<<<<<<< HEAD
 
     ipcMain.handle('validate-session', async (event, token) => {
+=======
+    
+    ipcMain.handle('validate-session', async (event, token) => {
+        console.log('Handling validate-session:', token);
+>>>>>>> 609dac5f38e2b2605a8501c20530b10676a2bfb9
         try {
             if (!token) {
                 console.log('No token provided.');
                 return { valid: false };
             }
     
+<<<<<<< HEAD
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_secret_key');
             console.log('Decoded token:', decoded);
     
@@ -81,6 +103,25 @@ app.whenReady().then(() => {
     
             if (Array.isArray(rows) && rows.length > 0) {
                 const user = rows[0];
+=======
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            console.log('Decoded token:', decoded);
+    
+            const [rows] = await db.query(`
+                SELECT id, first_name, last_name, email, role 
+                FROM users 
+                WHERE id = ? AND LOWER(TRIM(role)) = LOWER(TRIM(?))
+            `, [decoded.id, decoded.role]);
+    
+            if (Array.isArray(rows) && rows.length > 0) {
+                const user = rows[0];
+    
+                // Just double-checking the structure
+                if (!user.first_name || !user.last_name) {
+                    console.warn('Missing user name fields:', user);
+                }
+    
+>>>>>>> 609dac5f38e2b2605a8501c20530b10676a2bfb9
                 console.log('Session validation successful. User:', user);
                 return { valid: true, user };
             } else {
