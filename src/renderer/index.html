@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>WeCare Officer</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="app-container">
@@ -12,6 +13,7 @@
             <p>Officer complaint management system</p>
             <p>Loading officer data...</p>
         </div>
+        <div id="errorMessage" style="display:none; color:red;">Error: Unable to load officer data.</div>
         <div id="complaints-container" style="display:none;">
             <!-- Will be populated by JavaScript -->
         </div>
