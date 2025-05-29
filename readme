@@ -13,4 +13,3 @@ npm install electron-builder --save-dev
 npm install electron-reloader --save-dev
 npm install dotenv --save
 npm install mysql2 --save
-npm install axios --save

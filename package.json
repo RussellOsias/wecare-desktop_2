@@ -3,16 +3,17 @@
   "version": "1.0.0",
   "main": "src/main/main.js",
   "scripts": {
-    "start": "electron .",
-    "watch": "nodemon --exec electron .",
-    "build": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux"
+    "start": "cross-env NODE_ENV=development electron .",
+    "watch": "cross-env NODE_ENV=development nodemon --exec electron .",
+    "build": "cross-env NODE_ENV=production electron-builder",
+    "build:win": "cross-env NODE_ENV=production electron-builder --win",
+    "build:mac": "cross-env NODE_ENV=production electron-builder --mac",
+    "build:linux": "cross-env NODE_ENV=production electron-builder --linux"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "electron": "^28.1.0",
-    "electron-builder": "^24.9.1",
+    "electron-builder": "^24.13.3",
     "electron-reloader": "^1.2.3",
     "nodemon": "^3.1.0"
   },
@@ -22,7 +23,13 @@
     "bcryptjs": "^3.0.2",
     "dotenv": "^16.5.0",
     "jsonwebtoken": "^9.0.2",
+<<<<<<< HEAD
     "mysql2": "^3.9.0"
+=======
+    "mysql2": "^3.9.0",
+    "nodemailer": "^6.10.1",
+    "speakeasy": "^2.0.0"
+>>>>>>> d5a861b9be5a40408f65682c0209bc20d6ed5d92
   },
   "build": {
     "appId": "com.wecare.officer",
