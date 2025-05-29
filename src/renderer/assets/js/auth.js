@@ -1,12 +1,10 @@
 const { ipcRenderer } = require('electron');
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Check if we're on login page
     if (document.querySelector('#loginForm')) {
         setupLoginForm();
     }
-    
-    // Check if we're on dashboard
+
     if (document.querySelector('#logoutBtn')) {
         setupDashboard();
     }
@@ -33,10 +31,12 @@ function setupLoginForm() {
         
         try {
             const result = await ipcRenderer.invoke('attempt-login', { email, password });
+            console.log('Login result:', result); // Log the response
             
             if (result.success) {
-                // Store token in localStorage (in a real app, use secure storage)
+                // Store the token in localStorage
                 localStorage.setItem('authToken', result.token);
+                console.log('Token stored in localStorage:', result.token);
                 
                 // Redirect to dashboard
                 window.location.href = 'dashboard.html';
@@ -50,7 +50,7 @@ function setupLoginForm() {
             resetLoginButton();
         }
     });
-    
+
     function resetLoginButton() {
         loginText.textContent = 'Login';
         loginSpinner.style.display = 'none';
@@ -72,19 +72,23 @@ function setupDashboard() {
     
     async function validateSession() {
         const token = localStorage.getItem('authToken');
-        
+        console.log('Token retrieved from localStorage:', token); // Debugging log
+
         if (!token) {
+            console.log('No token found. Redirecting to login...');
             window.location.href = 'login.html';
             return;
         }
-        
+
         try {
             const result = await ipcRenderer.invoke('validate-session', token);
-            
+            console.log('Session validation result:', result); // Debugging log
+
             if (result.valid) {
                 userName.textContent = result.user.name;
                 // Load dashboard content
             } else {
+                console.log('Invalid session. Redirecting to login...');
                 window.location.href = 'login.html';
             }
         } catch (error) {

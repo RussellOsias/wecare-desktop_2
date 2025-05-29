@@ -1,0 +1,41 @@
+<div class="history-view">
+    <div class="view-header">
+        <h2>Complaint History</h2>
+        <div class="history-filters">
+            <select id="timePeriodFilter" class="form-control">
+                <option value="30">Last 30 Days</option>
+                <option value="90">Last 90 Days</option>
+                <option value="365">Last Year</option>
+                <option value="all">All Time</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="history-stats">
+        <div class="stat-card">
+            <h3>Total Resolved</h3>
+            <div class="stat-value" id="totalResolved">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Avg. Resolution Time</h3>
+            <div class="stat-value" id="avgResolutionTime">0 days</div>
+        </div>
+    </div>
+    
+    <table class="history-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Resident</th>
+                <th>Submitted</th>
+                <th>Resolved</th>
+                <th>Days Taken</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="historyTableBody">
+            <!-- Will be populated by JavaScript -->
+        </tbody>
+    </table>
+</div>
